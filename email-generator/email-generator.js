@@ -11,9 +11,20 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
+// Load languages configuration
+function loadLanguages() {
+  const languagesPath = path.join(__dirname, 'languages.json');
+  if (!fs.existsSync(languagesPath)) {
+    console.error('❌ Error: languages.json not found');
+    process.exit(1);
+  }
+  return JSON.parse(fs.readFileSync(languagesPath, 'utf8')).languages;
+}
+
 // Configuration
 const CONFIG = {
-  markdownFile: 'Communications Template.md',
+  communicationsDir: 'communications',
+  markdownFileTemplate: 'Communications.md', // Communications.md in each language dir
   templateDir: './',
   defaultTemplate: 'template-basic.html',
   outputDir: 'generated-emails',
@@ -234,8 +245,8 @@ function extractField(sectionText, fieldName) {
   let match = sectionText.match(regex);
   if (match) return match[1].trim();
 
-  // Try pattern 2: **Field: value** (colon inside bold, content also bolded)
-  regex = new RegExp(`\\*\\*${fieldName}:\\s*(.+?)\\*\\*`, 'i');
+  // Try pattern 2: **Field:** value (colon inside bold, no closing ** at end of value)
+  regex = new RegExp(`\\*\\*${fieldName}:\\*\\*\\s*(.+?)(?=\\n|$)`, 'i');
   match = sectionText.match(regex);
   return match ? match[1].trim() : '';
 }
@@ -323,7 +334,8 @@ function generateHtmlEmail(template, email, footer, variables) {
   const allVariables = { ...variables };
   if (buttonInfo) {
     allVariables.buttonText = buttonInfo.buttonText;
-    allVariables.buttonUrl = buttonInfo.buttonUrl;
+    // Resolve any variables in buttonUrl (e.g., {{portalLink}})
+    allVariables.buttonUrl = replaceVariables(buttonInfo.buttonUrl, variables);
   }
 
   // Convert email header to HTML if it exists (optional field)
@@ -407,25 +419,36 @@ function saveEmail(html, email, outputDir) {
 /**
  * Generate a JSON data file with all emails
  */
-function saveEmailsJson(emails, outputDir) {
+function saveEmailsJson(emails, outputDir, language, locale, metadata) {
   const jsonPath = path.join(outputDir, 'emails-data.json');
-  const data = {
-    generatedAt: new Date().toISOString(),
-    emails: emails.map(e => ({
+
+  // Resolve variables in subject lines using metadata
+  const resolvedEmails = emails.map(e => {
+    const resolvedSubject = replaceVariables(e.subjectLine, metadata);
+    return {
       id: e.id,
       title: e.title,
-      subjectLine: e.subjectLine,
+      subjectLine: resolvedSubject,
       trigger: e.trigger,
       timing: e.timing,
       template: e.template || CONFIG.defaultTemplate,
       emailContent: e.emailContent,
       smsContent: e.smsContent,
-      footerType: e.footerType
-    }))
+      footerType: e.footerType,
+      type: e.type
+    };
+  });
+
+  const data = {
+    generatedAt: new Date().toISOString(),
+    language: language,
+    locale: locale,
+    studyName: metadata.studyName || 'Unknown Study',
+    emails: resolvedEmails
   };
 
   fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), 'utf8');
-  console.log(`✓ Generated: emails-data.json`);
+  console.log(`✓ Generated: emails-data.json (${language})`);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -433,82 +456,105 @@ function saveEmailsJson(emails, outputDir) {
 async function main() {
   console.log('Vibrent Email Generator\n');
 
-  // Get markdown file from command-line argument or use default
-  const markdownFile = process.argv[2] || CONFIG.markdownFile;
+  // Load languages
+  const languages = loadLanguages();
+  console.log(`Loaded ${languages.length} language(s): ${languages.map(l => l.code).join(', ')}\n`);
 
-  // Check if file exists
-  if (!fs.existsSync(markdownFile)) {
-    console.error(`❌ Error: Markdown file not found: ${markdownFile}`);
-    console.log('\nUsage: node email-generator.js [markdown-file.md]');
-    console.log(`Default: ${CONFIG.markdownFile}\n`);
-    process.exit(1);
-  }
-
-  // Read markdown file
-  console.log(`Reading markdown file: ${markdownFile}`);
-  const markdownContent = fs.readFileSync(markdownFile, 'utf8');
-
-  // Parse metadata and footers from markdown
-  console.log('Parsing metadata...');
-  const { metadata, footers, found: metadataFound } = parseMetadata(markdownContent);
-  console.log(`Study: ${metadata.studyName || 'Not found'}`);
-
-  // Parse emails
-  console.log('Parsing emails...');
-  const emails = parseMarkdownEmails(markdownContent);
-  console.log(`Found ${emails.length} emails`);
-
-  if (emails.length === 0) {
-    console.log('\n⚠️  No emails found. Check the markdown file format.');
-    return;
-  }
-
-  // Validate and collect warnings
-  console.log('\nValidating...');
-  checkMetadata(metadata, footers, metadataFound);
-  for (const email of emails) {
-    checkEmail(email);
-  }
-
-  // If warnings found, print them and prompt before generating anything
-  if (warnings.length > 0) {
-    printWarnings();
-    const proceed = await promptContinue();
-    if (!proceed) {
-      console.log('\nAborted. No files were generated.');
-      process.exit(0);
-    }
-    console.log('');
-  } else {
-    console.log('✓ No warnings.\n');
-  }
-
-  // Create output directory
+  // Create root output directory
   if (!fs.existsSync(CONFIG.outputDir)) {
     fs.mkdirSync(CONFIG.outputDir, { recursive: true });
   }
 
-  // Generate HTML files
-  console.log('Generating HTML files...');
-  for (const email of emails) {
-    // Load the appropriate template for this email
-    const templateFileName = email.template || CONFIG.defaultTemplate;
-    const template = loadTemplate(templateFileName);
+  // Process each language
+  for (const lang of languages) {
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`Processing: ${lang.name} (${lang.code})`);
+    console.log('='.repeat(50) + '\n');
 
-    const footer = footers[email.footerType] || '';
-    const html = generateHtmlEmail(template, email, footer, metadata);
-    saveEmail(html, email, CONFIG.outputDir);
+    // Clear warnings for each language
+    warnings.length = 0;
+
+    // Build path to language-specific markdown file
+    const markdownFile = path.join(CONFIG.communicationsDir, lang.code, CONFIG.markdownFileTemplate);
+
+    // Check if file exists
+    if (!fs.existsSync(markdownFile)) {
+      console.error(`❌ Error: Markdown file not found: ${markdownFile}`);
+      console.log(`   Expected path: communications/${lang.code}/Communications.md\n`);
+      continue;
+    }
+
+    // Read markdown file
+    console.log(`Reading: ${markdownFile}`);
+    const markdownContent = fs.readFileSync(markdownFile, 'utf8');
+
+    // Parse metadata and footers from markdown
+    console.log('Parsing metadata...');
+    const { metadata, footers, found: metadataFound } = parseMetadata(markdownContent);
+    console.log(`Study: ${metadata.studyName || 'Not found'}`);
+
+    // Parse emails
+    console.log('Parsing emails...');
+    const emails = parseMarkdownEmails(markdownContent);
+    console.log(`Found ${emails.length} emails`);
+
+    if (emails.length === 0) {
+      console.log('⚠️  No emails found. Skipping this language.');
+      continue;
+    }
+
+    // Validate and collect warnings
+    console.log('\nValidating...');
+    checkMetadata(metadata, footers, metadataFound);
+    for (const email of emails) {
+      checkEmail(email);
+    }
+
+    // If warnings found, print them and prompt before generating anything
+    if (warnings.length > 0) {
+      printWarnings();
+      const proceed = await promptContinue();
+      if (!proceed) {
+        console.log('\nSkipped. No files were generated for this language.');
+        continue;
+      }
+      console.log('');
+    } else {
+      console.log('✓ No warnings.\n');
+    }
+
+    // Create language-specific output directory
+    const langOutputDir = path.join(CONFIG.outputDir, lang.code);
+    if (!fs.existsSync(langOutputDir)) {
+      fs.mkdirSync(langOutputDir, { recursive: true });
+    }
+
+    // Generate HTML files
+    console.log('Generating HTML files...');
+    for (const email of emails) {
+      // Load the appropriate template for this email
+      const templateFileName = email.template || CONFIG.defaultTemplate;
+      const template = loadTemplate(templateFileName);
+
+      const footer = footers[email.footerType] || '';
+      const html = generateHtmlEmail(template, email, footer, metadata);
+      saveEmail(html, email, langOutputDir);
+    }
+
+    // Save JSON data file
+    console.log('\nSaving JSON data...');
+    saveEmailsJson(emails, langOutputDir, lang.code, lang.locale, metadata);
+
+    // Save generation report
+    console.log('Saving generation report...');
+    saveReport(langOutputDir);
+
+    console.log(`✅ Complete for ${lang.name}!`);
   }
 
-  // Save JSON data file
-  console.log('\nSaving JSON data...');
-  saveEmailsJson(emails, CONFIG.outputDir);
-
-  // Save generation report
-  console.log('\nSaving generation report...');
-  saveReport(CONFIG.outputDir);
-
-  console.log('\n✅ Complete! Check the generated-emails/ directory');
+  console.log(`\n${'='.repeat(50)}`);
+  console.log('✅ All languages processed!');
+  console.log(`Check the generated-emails/ directory for language folders`);
 }
 
 // Run the script

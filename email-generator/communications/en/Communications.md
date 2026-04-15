@@ -12,7 +12,7 @@ Last Update: [DATE]
 
 **System Comms Footer**: If you have any questions, or if you wish to report a problem that may be related to this research study, please email us at {{studyTeamEmail}}.
 
-**Marketing Footer**: If you have any questions, or if you wish to report a problem that may be related to this research study, please email us at {{studyTeamEmail}}. To unsubscribe or update your preferences, \[click here\]({{hostedUnsubscribeUrl}})
+**Marketing Footer**: If you have any questions, or if you wish to report a problem that may be related to this research study, please email us at {{studyTeamEmail}}. To unsubscribe or update your preferences, \[click here\]({{hostedUnsubscribeUrl}}) {{hostedUnsubscribeUrl}}
 
 {{postalAddress}}
 
