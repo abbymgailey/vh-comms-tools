@@ -17,13 +17,24 @@ No npm install needed — the script uses only Node's built-in `fs` and `path` m
 
 Follow these steps each time you set up email generation for a new study.
 
-### Step 1: Copy the Markdown template
+### Step 1: Set up your language folder
 
-Make a copy of `Communications Template.md` and rename it for your study (e.g. `communications template (MDA).md`). Keep the original untouched as our blank template for future studies.
+The system now organizes emails by language. For a study with English emails:
+
+1. You'll write your email content in a file called `Communications.md`
+2. This file lives inside `communications/en/` folder
+3. Your folder structure should look like:
+   ```
+   communications/
+   └── en/
+       └── Communications.md
+   ```
+
+We've already created this folder for you! You just need to edit the `Communications.md` file inside.
 
 ### Step 2: Fill in the Metadata section
 
-Open your new file and update the five fields at the top under `## Metadata`:
+Open the file `communications/en/Communications.md` and update the five fields at the top under `## Metadata`:
 
 | Field | What to enter |
 |---|---|
@@ -75,40 +86,203 @@ Required slots per template:
 
 ### Step 5 — Confirm your folder structure
 
-Before running the script, your working folder should contain:
+After completing Steps 2–4, your folder should look like:
 
 ```
 email-generator.js
 template-basic.html
 template-with-button.html
-communications template (your study name).md
+languages.json
+communications/
+└── en/
+    └── Communications.md
 ```
 
-Everything must be in the same folder. The `generated-emails/` output directory will be created automatically.
+The `generated-emails/` output directory will be created automatically when you run the script.
 
 ### Step 6 — Run the script
 
-Open a terminal, navigate to your folder, and run:
+**Option A: If you're using Terminal / Command Line**
 
-```bash
-node email-generator.js "communications template (your study name).md"
+1. Open your terminal
+2. Navigate to your project folder
+3. Type this command and press Enter:
+   ```bash
+   node email-generator.js
+   ```
+
+**Option B: If you prefer a graphical approach**
+
+You can also use VS Code's built-in terminal or another code editor.
+
+**What to expect:**
+
+The script will print a line for each file it generates:
+```
+Vibrent Email Generator
+
+Loaded 1 language(s): en
+
+==================================================
+Processing: English (en)
+==================================================
+
+Reading: communications/en/Communications.md
+...
+✓ Generated: s1-welcome.html
+✓ Generated: m1-reminder.html
+...
 ```
 
-If you named your file exactly `Communications Template.md` you can omit the filename:
-
-```bash
-node email-generator.js
+When it finishes you'll see:
 ```
-
-The script will print a line for each file it generates. When it finishes you'll see:
-
-```
-✅ Complete! Check the generated-emails/ directory
+✅ All languages processed!
+Check the generated-emails/ directory for language folders
 ```
 
 ### Step 7 — Review and upload
 
-Open `generated-emails/` and spot-check a few HTML files in a browser before uploading to your ESP. The `emails-data.json` file in the same directory is a structured summary of all emails — subject lines, triggers, timing, and SMS content — useful for a QA review or handoff doc.
+1. Open the `generated-emails/` folder
+2. You'll see a folder for each language (e.g., `en/`)
+3. Navigate into `en/` and open a few HTML files in your browser to spot-check them
+4. Check that:
+   - Your logo appears
+   - Your brand colors are correct
+   - Subject lines, email text, and buttons look right
+5. The `emails-data.json` file in that folder is a structured summary of all emails — useful for QA review before uploading to Iterable
+
+Once you're satisfied, you're ready to push these templates to Iterable (see "Uploading to Iterable" section below).
+
+---
+
+## Uploading to Iterable
+
+Once your emails are generated and reviewed, you can push them directly to Iterable.
+
+### Setup (One-time only)
+
+1. **Get your API key:**
+   - Log into your Iterable account
+   - Go to Settings → API Keys
+   - Copy your API key
+
+2. **Create the `.env` file:**
+   - In your project folder, look for the file `.env.example`
+   - Make a copy of it and rename the copy to `.env` (this is a hidden file)
+   - Open `.env` in a text editor
+   - Replace `your_api_key_here` with your actual Iterable API key
+   - Save and close the file
+
+   **IMPORTANT:** Never commit this `.env` file to git — it contains your secret API key. The `.gitignore` file already prevents this.
+
+### Uploading Templates
+
+Once setup is complete, run:
+
+```bash
+node push-to-iterable.js
+```
+
+The script will:
+- Read all your generated HTML files
+- Create new templates in Iterable
+- Track which templates have been uploaded in a file called `iterable-manifest.json`
+- Print a success message
+
+Example output:
+```
+Iterable Email Template Pusher
+
+✓ Loaded API key from .env
+✓ Loaded 1 language(s): en
+
+Processing: English (en)
+──────────────────────────────────────
+📤 Uploading [en] "Verify Your Email"...
+   ✓ templateId: 12345
+📤 Uploading [en] "Welcome to the Study"...
+   ✓ templateId: 12346
+
+✅ Uploaded/Updated: 2 template(s)
+📋 Manifest saved to: iterable-manifest.json
+```
+
+### Updating Existing Templates
+
+If you modify your emails and regenerate them:
+
+1. Run the generation script again:
+   ```bash
+   node email-generator.js
+   ```
+
+2. Then run the push script:
+   ```bash
+   node push-to-iterable.js
+   ```
+
+The script will automatically detect which templates already exist and update them (using the `iterable-manifest.json` file to remember which ones you've uploaded).
+
+---
+
+## Multi-Language Support
+
+The system supports emails in multiple languages. Currently set up for: **English (en)**, Spanish (es), French (fr).
+
+### Adding Content for Another Language
+
+Let's say you want to create Spanish versions of your emails:
+
+1. **Copy the English file:**
+   - Navigate to `communications/es/` folder
+   - If `Communications.md` doesn't exist, copy it from `communications/en/Communications.md`
+
+2. **Translate the content:**
+   - Open `communications/es/Communications.md`
+   - Translate the email content (keep the `## Metadata` section in English for now — study details are usually the same)
+   - Save the file
+
+3. **Generate emails for all languages:**
+   ```bash
+   node email-generator.js
+   ```
+   
+   The script will now create:
+   - `generated-emails/en/` — English versions
+   - `generated-emails/es/` — Spanish versions
+
+4. **Upload all languages to Iterable:**
+   ```bash
+   node push-to-iterable.js
+   ```
+
+   Iterable will recognize these as locale variants of the same templates and organize them accordingly.
+
+### Adding a New Language (Not in the Default List)
+
+1. **Add it to `languages.json`:**
+   
+   Open `languages.json` and add a new language. For example, to add German:
+   ```json
+   { "code": "de", "locale": "de_DE", "name": "German" }
+   ```
+
+2. **Create the folder and markdown file:**
+   ```
+   communications/
+   └── de/
+       └── Communications.md
+   ```
+
+3. **Copy and translate content:**
+   - Copy `communications/en/Communications.md` to `communications/de/Communications.md`
+   - Translate the email content
+
+4. **Generate and upload:**
+   ```bash
+   node email-generator.js
+   node push-to-iterable.js
+   ```
 
 ---
 
@@ -201,3 +375,5 @@ Variables like `{{hostedUnsubscribeUrl}}` are Vibrent platform variables — lea
 - **Section separators** (`—`) between emails are optional but help readability.
 - **Formatting**: `**bold**` renders as `<strong>`. Markdown links render as `<a>` tags styled for dark backgrounds — best used inside footer text.
 - **Custom templates**: Add any `.html` file to the repo root and reference it by name (without `.html`) in the `Template` field. It must include the same `{{slot}}` placeholders.
+- **Multiple languages**: The email-generator script automatically processes all languages in `communications/`. You only need to run it once per generation cycle.
+- **API key safety**: The `.env` file contains your Iterable API key. Never share it, and never commit it to git. Use `.env.example` if you need to show someone the file structure.

@@ -1,0 +1,92 @@
+{
+  "templates": {
+    "Complete Your COPPER Consent Form": {
+      "en": {
+        "templateId": "23053985",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:42.587Z",
+        "filePath": "m1-consent-reminder.html"
+      }
+    },
+    "Reminder: Complete your \\[Name of Survey\\] Survey": {
+      "en": {
+        "templateId": "23053986",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:42.702Z",
+        "filePath": "m2--survey-reminder.html"
+      }
+    },
+    "Connect your Electronic Health Records": {
+      "en": {
+        "templateId": "23053987",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:42.819Z",
+        "filePath": "m3-connect-ehr.html"
+      }
+    },
+    "[SUBJECT LINE]": {
+      "en": {
+        "templateId": "23053988",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:42.910Z",
+        "filePath": "m4--manual-return-to-portal.html"
+      }
+    },
+    "s1-verify-your-email-address": {
+      "en": {
+        "templateId": "23053989",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:18:16.012Z",
+        "filePath": "s1-verify-your-email-address.html"
+      }
+    },
+    "Reset Your Password For the COPPER": {
+      "en": {
+        "templateId": "23053990",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:43.153Z",
+        "filePath": "s2-reset-password.html"
+      }
+    },
+    "Your COPPER Account is Locked": {
+      "en": {
+        "templateId": "23053991",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:43.239Z",
+        "filePath": "s3-account-locked.html"
+      }
+    },
+    "Welcome to COPPER": {
+      "en": {
+        "templateId": "23053992",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:43.333Z",
+        "filePath": "s4-welcome.html"
+      }
+    },
+    "Withdrawal from COPPER": {
+      "en": {
+        "templateId": "23053993",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:43.416Z",
+        "filePath": "s5-withdrawal.html"
+      }
+    },
+    "Your COPPER Consent Form": {
+      "en": {
+        "templateId": "23053994",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:43.516Z",
+        "filePath": "s6-consent-confirmation-copy-of-consent.html"
+      }
+    },
+    "Verify Your Email Address COPPER": {
+      "en": {
+        "templateId": "23054779",
+        "locale": "en",
+        "uploadedAt": "2026-04-15T16:21:43.057Z",
+        "filePath": "s1-verify-your-email-address.html"
+      }
+    }
+  }
+}

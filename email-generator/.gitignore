@@ -1,0 +1,10 @@
+# Environment variables with sensitive data
+.env
+
+# Generated files
+generated-emails/
+node_modules/
+
+# Manifest tracking (optional - commit if you want to track templateIds in git)
+# Uncomment the line below to avoid committing templateId mappings
+# iterable-manifest.json
