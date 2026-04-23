@@ -1,0 +1,15 @@
+{
+  "name": "iterable-data-push",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Tools for updating Iterable user data",
+  "main": "updateIterableUsers.js",
+  "scripts": {
+    "update-users": "node updateIterableUsers.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {}
+}
