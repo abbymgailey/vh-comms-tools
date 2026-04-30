@@ -50,17 +50,25 @@ npm run reconcile -- events "path/to/events.csv"
 **Input file:** CSV file with columns mapping to event fields:
 - `userId` — User ID (required)
 - `eventName` — Event name (required)
-- `campaignId` — Campaign ID (optional)
-- `templateId` — Template ID (optional)
+- `campaignId` — Campaign ID (optional, integer)
+- `templateId` — Template ID (optional, integer)
 - `createNewFields` — Boolean flag (optional)
-- `createdAt` — Timestamp (optional)
+- `createdAt` — Unix timestamp (optional, see formatting below)
 - Any additional columns are treated as `dataFields`
+
+**Data Type Handling:**
+- Boolean values in CSV are automatically converted: `"true"` / `"TRUE"` → `true`, `"false"` / `"FALSE"` → `false`
+- Integer fields (`campaignId`, `templateId`) are parsed as integers
+- The script will fail if data types don't match previously submitted data for the same event type in Iterable
+
+**Date Format for `createdAt`:**
+The `createdAt` field must be formatted as `YYYY-MM-DD HH:MM:SS` (e.g., `2026-04-20 00:00:00`). The script converts this to a Unix timestamp in seconds before sending to Iterable.
 
 Example CSV:
 ```csv
-userId,eventName,eventStatus,eventSource,eventType
-87609,userMilestoneEntry,submitted,kitReturnReminderDiscard,cuny_form_response
-87610,userMilestoneEntry,submitted,kitReturnReminderDiscard,cuny_form_response
+userId,eventName,formId,formName,paused,createdAt
+31840,formEntry,1744,Manual Override,FALSE,2026-04-20 00:00:00
+33619,formEntry,1744,Manual Override,FALSE,2026-04-20 00:00:00
 ```
 
 ### Run Both Operations
@@ -122,6 +130,18 @@ Summary:
 - **.env.example** — Template for the .env file
 - **package.json** — Node dependencies
 
+## Utilities
+
+### Date Format Converter
+
+If your CSV has dates in `MM/DD/YY` format and you need to convert them to `YYYY-MM-DD HH:MM:SS`, use the `convert-dates.js` utility:
+
+```bash
+node convert-dates.js
+```
+
+This script converts dates for files with `createdAt` or `event_date` columns. Edit the script to add additional CSV files as needed.
+
 ## Troubleshooting
 
 ### "No API key found"
@@ -130,5 +150,14 @@ Ensure `.env` has `ITERABLE_API_KEY=your_key_here` in the same directory as the 
 ### CSV file not found
 Check the file path and ensure the CSV exists at the specified location.
 
+### Data type mismatch error
+Error: `Field already exists for type 'customEvent' and has a data type of 'boolean' but possible types 'string' in the request`
+
+This means a field was previously sent to Iterable with a different data type. The script automatically converts:
+- `"true"` / `"TRUE"` / `"false"` / `"FALSE"` strings to boolean values
+- Numeric string values can be sent as strings if that's how they were first sent
+
+Ensure all CSV values match the data types already registered in Iterable for that event.
+
 ### Some operations failed
-Check error messages in the output. Common issues: invalid user IDs, malformed CSV, or API errors.
+Check error messages in the output. Common issues: invalid user IDs, malformed CSV, data type mismatches, or API errors.
