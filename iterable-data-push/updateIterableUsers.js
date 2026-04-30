@@ -183,7 +183,14 @@ function readEventsFromCSV(filePath) {
 
     Object.entries(record).forEach(([key, value]) => {
       if (!excludedKeys.includes(key) && value) {
-        event.dataFields[key] = value;
+        // Convert boolean string values to actual booleans
+        if (value.toLowerCase() === 'true') {
+          event.dataFields[key] = true;
+        } else if (value.toLowerCase() === 'false') {
+          event.dataFields[key] = false;
+        } else {
+          event.dataFields[key] = value;
+        }
       }
     });
 
